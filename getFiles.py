@@ -20,6 +20,7 @@ NOMAL = 0
 LATEX = 1
 MODE = LATEX
 IGNORE_UPDATE = 0
+PAGE_PAR_VOL = 25
 
 
 class NarouParser(HTMLParser.HTMLParser):
@@ -220,7 +221,7 @@ def replaceRet(string):
     return string
 
 
-def main(ncode, lastUpdate):
+def main(ncode, lastUpdate, volume):
     [title, author, page, novelUpdate] = getInfo(ncode)
     if IGNORE_UPDATE != 1:
         if novelUpdate < lastUpdate:
@@ -228,21 +229,27 @@ def main(ncode, lastUpdate):
             print >> sys.stderr, "Last novel update: %s" % novelUpdate
             print >> sys.stderr, "Last file update: %s" % lastUpdate
             exit(1)
+
+    # ノベル終了
+    if PAGE_PAR_VOL * (volume - 1) > page:
+        print >> sys.stderr, "%s finish!." % title
+        exit(2)
+
     print >> sys.stderr, "UPDATE %s." % title
-    header(title, author, ncode)
-    pages(ncode, page)
-    footer()
+    header(title, author, ncode, volume)
+    pages(ncode, page, volume)
+    footer(title, volume)
     return 0
 
 
-def header(title, author, ncode):
+def header(title, author, ncode, volume):
     if MODE == LATEX:
         # しおり
         # http://osksn2.hep.sci.osaka-u.ac.jp/~taku/osx/latex_bookmarks.html
         line = """\\documentclass[a5j, titlepage, 12pt]{tbook}
 \\usepackage[dvipdfmx]{hyperref}
 \\usepackage{pxjahyper}
-\\title{%s}
+\\title{%s(%d)}
 \\author{%s}
 \\date{\\today}
 
@@ -255,11 +262,11 @@ def header(title, author, ncode):
 \\begin{document}
 \\maketitle
 \\tableofcontents
-""" % (title, author)
+""" % (title, volume, author)
         # landscape ?
         print line
     else:
-        print "Title: %s  Author: %s" % (title, author)
+        print "Title: %s(%d) Author: %s" % (title, volume, author)
 
     addr = NAROUADDR + ncode + "/"
     fp = urllib2.urlopen(addr)
@@ -301,9 +308,16 @@ def getInfo(ncode):
     return info
 
 
-def pages(ncode, page):
+def pages(ncode, page, volume):
     # 各ページの取得
-    for i in range(1, page + 1):
+    volstart = PAGE_PAR_VOL * (volume - 1) + 1
+    volend = PAGE_PAR_VOL * volume
+
+    # 最大ページ超過
+    if volend > page:
+        volend = page
+
+    for i in range(volstart, volend + 1):
         print >> sys.stderr, "\rpage %d/%d" % (i, page),
         # time.sleep(PAUSE)
         addr = NAROUADDR + ncode + "/" + str(i) + "/"
@@ -335,29 +349,34 @@ def pages(ncode, page):
     return 0
 
 
-def footer():
+def footer(title, volume):
     if MODE == LATEX:
+        print "\n\\begin{flushright}"
+        print "%s(%d)" % (title, volume)
+        print "\\end{flushright}\n"
         print "\\end{document}"
     else:
         print ""
     return 0
 
 if __name__ == "__main__":
-    argLen = 2
-    if len(sys.argv) != argLen and len(sys.argv) != argLen + 1:
-        print >> sys.stderr, "Usage: %s NCODE [LAST-UPDATE]" % sys.argv[0]
+    argLen = 3
+    subLen = 1
+    if len(sys.argv) != argLen and len(sys.argv) != argLen + subLen:
+        print >> sys.stderr, "Usage: %s NCODE VOLUME [LAST-UPDATE]" % sys.argv[0]
         print >> sys.stderr, "NULL LAST-UPDATE: force UPDATE"
         print >> sys.stderr, "LAST-UPDATE FORMAT: %%Y/%%m/%%d_%%H:%%M:%%S"
-        exit(1)
-    if len(sys.argv) == 2:
+        exit(-1)
+    ncode = sys.argv[1]
+    volume = int(sys.argv[2])
+    lastUpdate = ""
+    if len(sys.argv) == argLen:
         IGNORE_UPDATE = 1
         print >> sys.stderr, "FORCE_UPDATE"
-    ncode = sys.argv[1]
-    lastUpdate = ""
-    if len(sys.argv) == argLen + 1:
-        lastUpdate = sys.argv[2]
+    elif len(sys.argv) == argLen + subLen:
+        lastUpdate = sys.argv[3]
         lastUpdate = datetime.datetime.strptime(lastUpdate,
                                                 "%Y/%m/%d_%H:%M:%S")
     if DEBUG >= 1:
-        print lastUpdate, IGNORE_UPDATE
-    main(ncode, lastUpdate)
+        print lastUpdate, IGNORE_UPDATE, volume
+    main(ncode, lastUpdate, volume)

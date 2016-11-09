@@ -1,5 +1,8 @@
 #!/bin/bash
 
+. config.sh
+# 設定ファイル読み込み
+
 workdir="tex"
 tmpfile="tmp"
 savePath=$SAVEFILE
@@ -17,28 +20,47 @@ echo "Updating: $update"
 texlog="/dev/null"
 
 # ターゲットファイルを残しておく
-cp ${target} ${target}${bak}
-rm ${target}${dummy}
+cp ${target} "${target}${bak}"
+if [ -e "${target}${dummy}" ] ;
+then
+    rm "${target}${dummy}"
+fi
+
 for i in `cat $target`
 do
     iupdate=${update}
     ncode=`echo $i | awk -F ',' '{print $1}'`
     fname=`echo $i | awk -F ',' '{print $2}'`
     lastUpdate=`echo $i| awk -F ',' '{print $3}'`
+    if [ ! -e "${savePath}/${fname}" ] ;
+    then
+        mkdir "${savePath}/${fname}"
+    fi
     echo
     echo "${ncode}..."
     cd $workdir
     rm ${tmpfile}*
-    python ../getFiles.py ${ncode} ${lastUpdate} > ${tmpfile}.tex &&
+    volume=1
+    while :
+    do
+        echo "Volume ${volume}"
+        python ../getFiles.py ${ncode} ${volume} ${lastUpdate} > ${tmpfile}.tex
+        if [ $? -ne 0 ] ;
+        then
+            break
+        fi
 
         echo "LaTeX..." &&
         platex ${tmpfile}.tex >> ${texlog}&&
         platex ${tmpfile}.tex >> ${texlog}&&
         platex ${tmpfile}.tex >> ${texlog}&&
         dvipdfmx -q -p a5 ${tmpfile}.dvi >> ${texlog}&&
-        mv -f ${tmpfile}.pdf ${fname}.pdf &&
-        mv -f ${fname}.pdf ${savePath}
-    if [ $? -ne 0 ];
+        mv -f "${tmpfile}.pdf" "${savePath}/${fname}/${fname}(${volume}).pdf"
+        volume=$(expr ${volume} + 1)
+    done
+
+    # python スクリプト側で，更新なしの場合は 1 を，ページ終了の場合は 2 を返すようにする．
+    if [ $? -eq 1 ];
     then
         echo "Skip \"${ncode}\""
         iupdate=${lastUpdate}
