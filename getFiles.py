@@ -209,6 +209,30 @@ def replaceHTML(string):
              ['7', '７'],
              ['8', '８'],
              ['9', '９'],
+             ['Ⅰ', 'I'],
+             ['ⅰ', 'i'],
+             ['Ⅱ', 'II'],
+             ['ⅱ', 'ii'],
+             ['Ⅲ', 'III'],
+             ['ⅲ', 'iii'],
+             ['Ⅳ', 'IV'],
+             ['ⅳ', 'iv'],
+             ['Ⅴ', 'V'],
+             ['ⅴ', 'v'],
+             ['Ⅵ', 'VI'],
+             ['ⅵ', 'vi'],
+             ['Ⅶ', 'VII'],
+             ['ⅶ', 'vii'],
+             ['Ⅷ', 'VIII'],
+             ['ⅷ', 'viii'],
+             ['Ⅸ', 'IX'],
+             ['ⅸ', 'ix'],
+             ['Ⅹ', 'X'],
+             ['ⅹ', 'x'],
+             ['Ⅺ', 'XI'],
+             ['ⅺ', 'xi'],
+             ['Ⅻ', 'XII'],
+             ['ⅻ', 'xii'],
              ['♡', '$\\heartsuit$']]
     for i in match:
         string = string.replace(i[0], i[1])
@@ -285,7 +309,7 @@ def header(title, author, ncode, volume):
 
 
 def getInfo(ncode):
-    addr = NAROUAPI + "?out=json&ncode=" + ncode
+    addr = NAROUAPI + "?out=json&of=t-w-ga-nu&ncode=" + ncode
     if DEBUG >= 1:
         print addr
     fp = urllib2.urlopen(addr)
@@ -358,6 +382,7 @@ def footer(title, volume):
     else:
         print ""
     return 0
+
 
 if __name__ == "__main__":
     argLen = 3
