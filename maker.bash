@@ -9,6 +9,10 @@ savePath=$SAVEFILE
 # $SAVEFILEは環境変数で宣言しておく
 target="data/novels.txt"
 
+PRE_IFS=$IFS
+IFS=$'\n'
+# 半角スペース対策
+
 bak="_bak.txt"
 dummy="_dummy.txt"
 
@@ -30,7 +34,7 @@ for i in `cat $target`
 do
     iupdate=${update}
     ncode=`echo $i | awk -F ',' '{print $1}'`
-    fname=`echo $i | awk -F ',' '{print $2}'`
+    fname=`echo $i | awk -F ',' '{print $2}' | sed -e "s/ /_/g"`
     lastUpdate=`echo $i| awk -F ',' '{print $3}'`
     if [ ! -e "${savePath}/${fname}" ] ;
     then
@@ -56,6 +60,7 @@ do
         platex ${tmpfile}.tex >> ${texlog}&&
         dvipdfmx -q -p a5 ${tmpfile}.dvi >> ${texlog}&&
         mv -f "${tmpfile}.pdf" "${savePath}/${fname}/${fname}(${volume}).pdf"
+        rm ${tmpfile}.*
         volume=$(expr ${volume} + 1)
     done
 
@@ -66,6 +71,7 @@ do
         iupdate=${lastUpdate}
     else
         echo "Complete!"
+        touch "${savePath}/${fname}"
     fi
     cd ../
     echo "${ncode},${fname},${iupdate}" >> ${target}${dummy}
@@ -73,4 +79,5 @@ done
 
 mv ${target}${dummy} ${target}
 
+IFS=$PRE_IFS
 exit 0
