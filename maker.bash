@@ -18,10 +18,23 @@ dummy="_dummy.txt"
 
 update=`date +"%Y/%m/%d_%H:%M:%S"`
 
-echo "FILE-FORMAT: ncode,fileName[,LastUpdate]"
+echo "FILE-FORMAT: ncode,fileName[,LastUpdate[,LastVolume]]"
 echo "Updating: $update"
 
 texlog="/dev/null"
+
+FORCE=""
+
+while [ $# -gt 0 ] ;
+do
+    echo "$#"
+    case ${1} in
+        -F) export FORCE="TRUE"; shift;;
+        *) echo "Usage $0 [-F]"; exit 0;;
+    esac
+done
+
+echo "FORCE ${FORCE}"
 
 # ターゲットファイルを残しておく
 cp ${target} "${target}${bak}"
@@ -36,6 +49,13 @@ do
     ncode=`echo $i | awk -F ',' '{print $1}'`
     fname=`echo $i | awk -F ',' '{print $2}' | sed -e "s/ /_/g"`
     lastUpdate=`echo $i| awk -F ',' '{print $3}'`
+    volume=`echo $i| awk -F ',' '{print $4}'`
+    if [ "$FORCE" = "TRUE" ] ;
+    then
+        lastUpdate=""
+        volume=""
+    fi
+
     if [ ! -e "${savePath}/${fname}" ] ;
     then
         mkdir "${savePath}/${fname}"
@@ -44,7 +64,10 @@ do
     echo "${ncode}..."
     cd $workdir
     rm ${tmpfile}*
-    volume=1
+    if [ "${volume}" = "" ] ;
+    then
+        volume=1
+    fi
     while :
     do
         echo "Volume ${volume}"
@@ -72,9 +95,14 @@ do
     else
         echo "Complete!"
         touch "${savePath}/${fname}"
+        if [ ${volume} -gt 1 ];
+        then
+            volume=$(expr ${volume} - 1)
+        fi
     fi
     cd ../
-    echo "${ncode},${fname},${iupdate}" >> ${target}${dummy}
+
+    echo "${ncode},${fname},${iupdate},${volume}" >> ${target}${dummy}
 done
 
 mv ${target}${dummy} ${target}
